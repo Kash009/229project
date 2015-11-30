@@ -1,0 +1,1 @@
+/usr/bin/c++    -DUSE_FREETYPE -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/diamond.dir/tests/diamond.cc.o  -o diamond  libpngwriter.a /usr/local/lib/libfreetype.dylib -lm /usr/lib/libz.dylib /usr/local/lib/libpng.dylib /usr/lib/libz.dylib /usr/local/lib/libpng.dylib /usr/local/lib/libfreetype.dylib 

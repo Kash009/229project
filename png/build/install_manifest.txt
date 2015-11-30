@@ -1,0 +1,3 @@
+/Users/winnielin/Schoolwork/2015/Fall/CS229/Project/png/build/lib/libpngwriter.dylib
+/Users/winnielin/Schoolwork/2015/Fall/CS229/Project/png/build/lib/libpngwriter.a
+/Users/winnielin/Schoolwork/2015/Fall/CS229/Project/png/build/include/pngwriter.h

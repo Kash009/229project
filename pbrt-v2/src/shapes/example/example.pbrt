@@ -1,0 +1,107 @@
+Film "image" "string filename" ["helix.exr"]
+	"integer xresolution" [800] "integer yresolution" [600]
+Sampler "lowdiscrepancy" "integer pixelsamples" [8] 
+Accelerator "bvh" "string splitmethod" "aac"
+LookAt -0.8 5.4 9.1  0 1.15 0   0 1 0
+Camera "perspective" "float fov" [22]
+WorldBegin
+#SurfaceIntegrator "irradiancecache" "integer maxspeculardepth" [15]
+
+
+#Lights
+AttributeBegin
+    AreaLightSource "area" "color L" [1 1 1] "integer nsamples" [8]
+    Translate 0 10 0
+    Rotate 90 1 0 0
+    Shape "disk" "float radius" [20] 
+AttributeEnd
+
+AttributeBegin
+    AreaLightSource "area" "color L" [13 10 8] "integer nsamples" [4]
+    Translate -3 5 0
+    Rotate 70 0 0 1
+    Rotate -90 0 1 0
+    Shape "disk" "float radius" [1] 
+AttributeEnd
+
+#AttributeBegin
+  # LightSource "infinite" "integer nsamples" [4]
+#AttributeEnd
+
+#plane
+AttributeBegin
+Material "matte" "color Kd" [0.2 0.19 0.15]
+Shape "trianglemesh" "integer indices" [ 0 1 2 2 0 3 ]
+    "point P" [-20 0 -20   -20 0 20   20 0 20   20 0 -20 ]
+    "float uv" [0 0 0 4 4 4 4 0]
+AttributeEnd
+ 
+#Bowl
+AttributeBegin
+Material "matte" "color Kd" [0.26 0.15 0.16]
+Translate 0 1 0
+Scale 1.5 1.5 1.5
+Include "bowl_tri_random.pbrt"
+AttributeEnd
+
+#green
+AttributeBegin
+      Translate -0.4 0.3 0.35
+      Rotate 100 0 1 0
+      Rotate 270 1 0 0
+      Scale 0.1 0.1 0.1
+      Material "uber" "color Kd" [0.7 0.89 0.6]
+      Shape "helix" "float radius" [4] "float thickness" [1.8] 
+                    "integer twirls" [4] "float twist" [1.1] 
+                    "integer orientation" [1] "integer ridge" [7]
+AttributeEnd
+
+AttributeBegin
+      Translate 0.3 0.3 -.2
+      Rotate 180 0 1 0
+      Rotate 270 1 0 0
+      Scale 0.1 0.1 0.1
+      Material "uber" "color Kd" [0.7 0.6 0.3] "color Ks" [0.5 0.3 0.2] "float roughness" [0.3]
+      Shape "helix" "float radius" [4.5] "float thickness" [2.0] 
+                    "integer twirls" [6] "float twist" [1.4] 
+                    "integer orientation" [0] "integer ridge" [5]
+AttributeEnd
+
+AttributeBegin
+
+Translate 0.6 0.4 0.5
+Rotate 20 0 1 0
+Scale 0.2 0.2 0.2
+Include "multiballs.pbrt"
+AttributeEnd
+
+AttributeBegin
+Translate 1 0.4 0.1
+Rotate 50 0 1 0
+Scale 0.12 0.12 0.12
+Include "multiballs.pbrt"
+AttributeEnd
+
+AttributeBegin
+Translate -1 0.4 0.1
+Rotate 20 0 1 0
+Scale 0.15 0.13 0.15
+Include "multiballs.pbrt"
+AttributeEnd
+
+AttributeBegin
+Translate -0.74 0.4 -0.2
+Rotate 20 0 1 0
+Scale 0.23 0.25 0.23
+Include "multiballs.pbrt"
+AttributeEnd
+
+AttributeBegin
+Translate 0.2 0.42 0.8
+Scale 0.2 0.2 0.2
+Include "multiballs.pbrt"
+AttributeEnd
+
+WorldEnd
+
+

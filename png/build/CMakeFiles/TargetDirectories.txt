@@ -1,0 +1,6 @@
+/Users/winnielin/Schoolwork/2015/Fall/CS229/Project/png/build/CMakeFiles/blackwhite.dir
+/Users/winnielin/Schoolwork/2015/Fall/CS229/Project/png/build/CMakeFiles/diamond.dir
+/Users/winnielin/Schoolwork/2015/Fall/CS229/Project/png/build/CMakeFiles/lyapunov.dir
+/Users/winnielin/Schoolwork/2015/Fall/CS229/Project/png/build/CMakeFiles/pngwriter.dir
+/Users/winnielin/Schoolwork/2015/Fall/CS229/Project/png/build/CMakeFiles/pngwriter_static.dir
+/Users/winnielin/Schoolwork/2015/Fall/CS229/Project/png/build/CMakeFiles/singleshape.dir

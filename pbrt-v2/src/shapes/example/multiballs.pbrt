@@ -1,0 +1,12 @@
+Material "glass"
+AttributeBegin
+Translate 0 1 0
+Rotate 150 0 1 0
+Include "sphere_hole_smooth.pbrt"
+AttributeEnd
+
+AttributeBegin
+Material "uber" "color Kd" [1 1 0.98 ] "color Ks" [1 1 1] "color Kr" [0.1 0.1 0.1] "float roughness" [0.2] "float index" [1.3]
+Translate 0 1.05 0
+Shape "sphere" "float radius" [0.8]
+AttributeEnd

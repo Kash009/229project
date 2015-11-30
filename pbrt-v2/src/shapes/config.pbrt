@@ -1,0 +1,147 @@
+Film "image" "string filename" ["helix.exr"]
+	"integer xresolution" [800] "integer yresolution" [600]
+Sampler "lowdiscrepancy" "integer pixelsamples" [16] 
+Accelerator "bvh" "string splitmethod" "aac"
+#LookAt -0.8 5.5 15  0 1.2 0   0 1 0
+LookAt -0.8 5.4 9.1  0 1.15 0   0 1 0
+Camera "perspective" "float fov" [22]
+SurfaceIntegrator "irradiancecache" "integer maxspeculardepth" [15]
+WorldBegin
+
+#Lights
+AttributeBegin
+    AreaLightSource "area" "color L" [1 1 1] "integer nsamples" [8]
+    Translate 0 10 0
+    Rotate 90 1 0 0
+    Shape "disk" "float radius" [20] 
+AttributeEnd
+
+AttributeBegin
+    AreaLightSource "area" "color L" [13 10 8] "integer nsamples" [4]
+    Translate -3 5 0
+    Rotate 70 0 0 1
+    Rotate -90 0 1 0
+    Shape "disk" "float radius" [1] 
+AttributeEnd
+
+AttributeBegin
+   LightSource "infinite" "integer nsamples" [16]
+AttributeEnd
+
+#plane
+AttributeBegin
+Texture "mat_texture" "color" "imagemap" "string filename" ["mat.tga"]
+Scale 6 6 6
+Texture "mat_bump" "float" "imagemap" "string filename" ["mat.tga"]
+Scale 0.16 0.16 0.16
+Material "uber" "texture Kd" "mat_texture" "texture bumpmap" "mat_bump"  "float roughness" [1]
+Translate 0.2 0.001 -0.1
+Rotate 17 0 1 0
+#Shape "trianglemesh" "integer indices" [ 0 1 2 2 0 3 ]
+#    "point P" [-2 0 -2   -2 0 2   2 0 2   2 0 -2 ]
+#    "float uv" [0.1 0.1 0.1 1.9 1.9 1.9 1.9 0.1]
+#    "normal N" [ -0.1 1 -0.1   -0.1 1 0.1   0.1 1 0.1   0.1 1 -0.1 ]
+AttributeEnd
+
+
+AttributeBegin
+Texture "plane_texture" "color" "imagemap" "string filename" ["wood.tga"]
+Texture "plane_bump" "float" "imagemap" "string filename" ["wood.tga"]
+Material "matte" "texture Kd" "plane_texture" #"texture bumpmap" "plane_bump"
+Translate 0 0 0
+Shape "trianglemesh" "integer indices" [ 0 1 2 2 0 3 ]
+    "point P" [-20 0 -20   -20 0 20   20 0 20   20 0 -20 ]
+    "float uv" [0 0 0 4 4 4 4 0]
+AttributeEnd
+
+AttributeBegin
+Texture "wood_texture" "color" "imagemap" "string filename" ["wood.tga"]
+Texture "wood_bump" "float" "imagemap" "string filename" ["wood.tga"]
+Material "matte" "texture Kd" "wood_texture" #"texture bumpmap" "wood_bump"
+Translate 0 0.4 0
+Rotate 270 1 0 0
+  Shape "disk" "float radius" [1.2]
+AttributeEnd
+ 
+#green
+AttributeBegin
+      Translate -0.4 0.4 0.35
+      Rotate 100 0 1 0
+      Rotate 270 1 0 0
+      Scale 0.001 0.001 0.001
+      Texture "cream_bump" "float" "imagemap" "string filename" ["cream.tga"]
+      Texture "cream_t" "color" "imagemap" "string filename" ["cream.tga"]
+      Scale 100 100 100
+      Material "uber" "texture Kd" "cream_t" "texture bumpmap" "cream_bump" 
+      Shape "helix" "float radius" [4] "float thickness" [1.8] 
+                    "integer twirls" [4] "float twist" [1.1] 
+                    "integer orientation" [1] "integer ridge" [7]
+AttributeEnd
+
+
+#Bowl
+AttributeBegin
+Texture "plane_texture" "color" "imagemap" "string filename" ["darkwood.tga"]
+Texture "plane_bump" "float" "imagemap" "string filename" ["darkwood.tga"]
+Translate 0 1 0
+Scale 1.5 1.5 1.5
+Include "bowl_tri_random.pbrt"
+AttributeEnd
+
+AttributeBegin
+      Translate 0.3 0.4 -.2
+      Rotate 180 0 1 0
+      Rotate 270 1 0 0
+      Scale 0.002 0.002 0.002
+      Texture "cream1_bump" "float" "imagemap" "string filename" ["choco.tga"]
+      Texture "cream1_t" "color" "imagemap" "string filename" ["choco.tga"]
+      Scale 50 50 50
+      #Material "substrate" "color Kd" [1.99 1.75 1.25 ] "color Ks" [0.5 0.5 0.5]  "texture bumpmap" "cream1_bump" 
+      #Material "kdsubsurface" "color Kd" [0.7 0.6 0.3] "float meanfreepath" [8]
+      #Material "subsurface" "string name" ["Cream"] "float scale" [0.001]
+      Material "uber" "texture Kd" ["cream1_t"] "color Ks" [0.5 0.3 0.2] "float roughness" [0.3]  "texture bumpmap" "cream1_bump" 
+      Shape "helix" "float radius" [4.5] "float thickness" [2.0] 
+                    "integer twirls" [6] "float twist" [1.4] 
+                    "integer orientation" [0] "integer ridge" [5]
+AttributeEnd
+
+AttributeBegin
+
+Translate 0.6 0.4 0.5
+Rotate 20 0 1 0
+Scale 0.2 0.2 0.2
+Include "multiballs.pbrt"
+AttributeEnd
+
+AttributeBegin
+Translate 1 0.4 0.1
+Rotate 50 0 1 0
+Scale 0.12 0.12 0.12
+Include "multiballs.pbrt"
+AttributeEnd
+
+AttributeBegin
+Translate -1 0.4 0.1
+Rotate 20 0 1 0
+Scale 0.15 0.13 0.15
+Include "multiballs.pbrt"
+AttributeEnd
+
+AttributeBegin
+Translate -0.74 0.4 -0.2
+Rotate 20 0 1 0
+Scale 0.23 0.25 0.23
+Include "multiballs.pbrt"
+AttributeEnd
+
+AttributeBegin
+Translate 0.2 0.42 0.8
+Scale 0.2 0.2 0.2
+Include "multiballs.pbrt"
+AttributeEnd
+
+
+
+WorldEnd
+
+
