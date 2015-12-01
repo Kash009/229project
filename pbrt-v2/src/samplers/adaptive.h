@@ -42,11 +42,12 @@
 #include "../libsvm/svm.h"
 
 //This means we actually initialize to 4+4 samples
-#define ML_MIN_SAMPLES 8
+#define ML_MIN_SAMPLES 4
 //This gives us max 1024 samples: 4*2^8=1024
-#define ML_MAX_LAYERS 8
+#define ML_MAX_LAYERS 2
 //used in training
 #define PIXEL_DIFF_THRESHOLD 0.01
+const std::string DATA_PATH = "./samplers/mldata/";
 
 typedef struct{
     float X,Y,Z;
@@ -85,7 +86,7 @@ private:
     void writePixelToFile();
     void writeToFile(string filename, float value);
     //Called when triggered from script of last raining scene
-    inline int get_id(){return idOffset + yLength*(xPos - xPixelStart) + (yPos- yPixelStart);}
+    inline int get_id(){return idOffset + yLength*xPos + yPos;}
 private:
     // AdaptiveSampler Private Data
     int xPos, yPos;

@@ -4,10 +4,10 @@ ConcatTransform [ 0.828849 -0.295370 -0.475149 0.000000 -0.559473 -0.437585 -0.7
 Translate -4.860000 -7.200000 -5.400000
 
 Camera "perspective" "float fov" [45.000000 ] "float shutteropen" [0.000000 ] "float shutterclose" [0.000000 ] "float screenwindow" [-1.000000 1.000000 -1.000000 1.000000 ] "float frameaspectratio" [1.000000 ] 
-Film "image" "integer xresolution" [200 ] "integer yresolution" [200 ]
+Film "image" "integer xresolution" [10 ] "integer yresolution" [10 ]
 
 
-Sampler "lowdiscrepancy" "integer pixelsamples" [1]
+Sampler "adaptive" "string datatype" ["train"] "integer maxsamples" [4]
 PixelFilter "box"
 Accelerator "kdtree"
 

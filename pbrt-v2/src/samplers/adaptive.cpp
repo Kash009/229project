@@ -40,6 +40,7 @@
 #include "camera.h"
 #include "montecarlo.h"
 #include <iostream>
+#include <fstream>
 
 //Call method
 //while(getmoresamples){if(reportresults)writepixeltofile}
@@ -58,8 +59,9 @@ AdaptiveSampler::AdaptiveSampler(int xstart, int xend,
 
     if(t == "train") datatype = TRAIN;
     else datatype = TEST;
-
+    //check for redundancy when more awake
     minSamples = ML_MIN_SAMPLES;
+    currSamples = minSamples/2;
 
     if(datatype == TEST){
         if (maxs < ML_MIN_SAMPLES){
@@ -75,7 +77,6 @@ AdaptiveSampler::AdaptiveSampler(int xstart, int xend,
             maxSamples = maxs;
     }else{
         //for training
-        minSamples = ML_MIN_SAMPLES;
         //doublecheck redundancy
         maxSamples = ML_MIN_SAMPLES * powf(2,ML_MAX_LAYERS);
     }
@@ -104,7 +105,7 @@ int AdaptiveSampler::GetMoreSamples(Sample *samples, RNG &rng) {
         LDPixelSample(xPos, yPos, shutterOpen, shutterClose, currSamples,
                       &(samples[currSamples]), sampleBuf, rng);
         currSamples *= 2;
-        return maxSamples;
+        return currSamples;
     }
     //end of image
     else if(svmLayer < 0){
@@ -131,6 +132,7 @@ bool AdaptiveSampler::ReportResults(Sample *samples,
         xPos = xPixelStart;
         ++yPos;
     }
+    id = get_id();
     svmLayer = -1;
     currSamples = minSamples/2;
     return true;
@@ -145,7 +147,6 @@ bool AdaptiveSampler::needsSupersampling(Sample *samples,
     int rangemax;
     int rangesize;
     if(svmLayer == 0){
-        id = get_id();
         rangemin = 0;
         rangemax = currSamples;
     }else{
@@ -184,9 +185,17 @@ void AdaptiveSampler::combinePixelData(){
     }
 }
 
-void AdaptiveSampler::writePixelToFile(){}
+void AdaptiveSampler::writePixelToFile(){
+    writeToFile("SingleShape" + std::to_string(svmLayer), currPixel.single_shape);
+}
 
-void AdaptiveSampler::writeToFile(string filename, float value){}
+void AdaptiveSampler::writeToFile(string filename, float value){
+    std::ofstream file(DATA_PATH + filename, std::ios::app);
+    if(file.is_open ()){
+        file << id << " " << value << "\n";
+    }else Warning("Could not write to \"%s\"", filename.c_str());
+    file.close();
+}
 
 int GetAndUpdateIDOffset(){return 0;}
 
