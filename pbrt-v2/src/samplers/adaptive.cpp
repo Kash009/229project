@@ -98,8 +98,10 @@ Sampler *AdaptiveSampler::GetSubSampler(int num, int count) {
 
 //REWRITE
 int AdaptiveSampler::GetMoreSamples(Sample *samples, RNG &rng) {
-    if (!sampleBuf)
+    if (!sampleBuf){
         sampleBuf = new float[LDPixelSampleFloatsNeeded(samples,maxSamples)];
+        XYZBuf = new float[3*maxSamples];
+    }
     if (svmLayer > 0) {
     //svmlayer = layer it has to passthrough AFTER this sample increase. i.e. layer 1 means it already has 2 rounds of samples.
         LDPixelSample(xPos, yPos, shutterOpen, shutterClose, currSamples,
@@ -155,23 +157,61 @@ bool AdaptiveSampler::needsSupersampling(Sample *samples,
     }
     rangesize = rangemax - rangemin;
     //parse things
+    //
+    //convert to XYZ. TODO: find documentation to stop initial xyz to rgb! maybe implement to Lab as well.
+    for (int i = rangemin; i < rangemax; ++i){
+        Ls[i].ToXYZ(&XYZBuf[3*i]);
+        XYZBuf[3*i] *= XYZ_SCALING;
+        XYZBuf[3*i +1] *= XYZ_SCALING;
+        XYZBuf[3*i +2] *= XYZ_SCALING;
+    }
     //init buff pixel
     buffPixel.single_shape = true;
     buffPixel.single_primitive = true;
-    float mean = 0;
+    buffPixel.delta_Y = 0;
+    float mBounces = rays[rangemin].depth;
+    float mX = XYZBuf[3*rangemin];
+    float mY = XYZBuf[3*rangemin+1];
+    float mZ = XYZBuf[3*rangemin+2];
+    float varY = 0;
+
     //calculate/analyze things
     for (int i = rangemin; i < rangemax -1; ++i){
+        //shapes and primitive
         if (isects[i].shapeId != isects[i+1].shapeId)buffPixel.single_shape = false;
-        mean += Ls[i].y();
+        if (isects[i].primitiveId != isects[i+1].primitiveId)buffPixel.single_primitive = false;
+        //color mean
+        mX += XYZBuf[3*(i+1)];
+        mY += XYZBuf[3*(i+1)+1];
+        mZ += XYZBuf[3*(i+1)+2];
+        mBounces += rays[i+1].depth;
     }
-    mean /= rangesize;
+
+    mX /= rangesize;
+    mY /= rangesize;
+    mZ /= rangesize;
+    mBounces /=rangesize;
+
+    buffPixel.X = mX;
+    buffPixel.Y = mY;
+    buffPixel.Z = mZ;
+    buffPixel.mean_bounces = mBounces;
+
+    //try recursive once code is finished
+    for (int i = rangemin; i < rangemax; ++i){
+            varY += powf(Ls[i].y() - mY,2);
+    }
+    varY /= rangesize;
+    buffPixel.var_Y = varY;
     combinePixelData();
+
+    if(svmLayer == 0)return true;
     if(datatype == TRAIN){
         writePixelToFile();
         if(svmLayer < ML_MAX_LAYERS)return true;
     }
+    writeToFile("sampleCount", currSamples);
     //currently test doesn't do anything besides minimum samples
-    if(svmLayer == 0)return true;
     return false;
 }
 
@@ -181,18 +221,40 @@ void AdaptiveSampler::combinePixelData(){
         currPixel = buffPixel;
     }else{
         currPixel.single_shape = (currPixel.single_shape && buffPixel.single_shape);
-        currPixel.mean_Y = (currPixel.mean_Y + buffPixel.mean_Y)/2;
+        currPixel.single_primitive = (currPixel.single_primitive && buffPixel.single_primitive);
+
+        currPixel.delta_Y = fabsf(currPixel.Y - buffPixel.Y);
+        //var intersection
+        currPixel.X = (currPixel.X + buffPixel.X)/2;
+        currPixel.Y = (currPixel.Y + buffPixel.Y)/2;
+        currPixel.Z = (currPixel.Z + buffPixel.Z)/2;
+        currPixel.var_Y = 0.5*(currPixel.var_Y + buffPixel.var_Y + 0.5*powf(currPixel.delta_Y,2));
+        currPixel.mean_bounces = (currPixel.mean_bounces + buffPixel.mean_bounces)/2;
     }
 }
 
 void AdaptiveSampler::writePixelToFile(){
+    writeToFile("VarY" + std::to_string(svmLayer), currPixel.var_Y);
+    writeToFile("MeanBounces" + std::to_string(svmLayer), currPixel.mean_bounces);
+    writeToFile("DeltaY" + std::to_string(svmLayer), currPixel.delta_Y);
     writeToFile("SingleShape" + std::to_string(svmLayer), currPixel.single_shape);
+    writeToFile("SinglePrimitive" + std::to_string(svmLayer), currPixel.single_primitive);
+    writeColor("PixelXYZ" + std::to_string(svmLayer), currPixel.X, currPixel.Y, currPixel.Z);
 }
 
 void AdaptiveSampler::writeToFile(string filename, float value){
     std::ofstream file(DATA_PATH + filename, std::ios::app);
     if(file.is_open ()){
         file << id << " " << value << "\n";
+    }else Warning("Could not write to \"%s\"", filename.c_str());
+    file.close();
+}
+
+
+void AdaptiveSampler::writeColor(string filename, float x, float y, float z){
+    std::ofstream file(DATA_PATH + filename, std::ios::app);
+    if(file.is_open ()){
+        file << id << " " << x << " " << y << " " << z << "\n";
     }else Warning("Could not write to \"%s\"", filename.c_str());
     file.close();
 }

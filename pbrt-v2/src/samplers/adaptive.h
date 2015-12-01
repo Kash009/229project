@@ -42,23 +42,23 @@
 #include "../libsvm/svm.h"
 
 //This means we actually initialize to 4+4 samples
-#define ML_MIN_SAMPLES 4
-//This gives us max 1024 samples: 4*2^8=1024
-#define ML_MAX_LAYERS 2
-//used in training
+#define ML_MIN_SAMPLES 8
+//This gives us max 1024 samples: 8*2^7=1024
+#define ML_MAX_LAYERS 6
+//used in training // currently only difference in illuminance, can do more complicate things in Lab color space
 #define PIXEL_DIFF_THRESHOLD 0.01
+//values too small, offset rounding error
+#define XYZ_SCALING 100
 const std::string DATA_PATH = "./samplers/mldata/";
 
 typedef struct{
-    float X,Y,Z;
-    float var_Y, mean_Y;
+    float X,Y,Z;//pixel value in ciexyz space
+    float var_Y;//illuminance variance
+    float mean_bounces;//n light Bounces
+    float var_intersection;//TODO: determine quantification
     float delta_Y;//first half and second half
-    bool single_shape;
-    bool single_primitive;
-    bool single_light;
-    float var_ndepth;
-    float *hull;//specified as for qhull
-    int n_samples;
+    bool single_shape;//object component
+    bool single_primitive;//object
 }pixel_data;
 
 // AdaptiveSampler Declarations
@@ -84,6 +84,7 @@ private:
     void combinePixelData();
     //Called for every training scene
     void writePixelToFile();
+    void writeColor(string filename, float x, float y, float z);
     void writeToFile(string filename, float value);
     //Called when triggered from script of last raining scene
     inline int get_id(){return idOffset + yLength*xPos + yPos;}
@@ -95,6 +96,7 @@ private:
     int minSamples, maxSamples, currSamples;
     int idOffset;
     float *sampleBuf;
+    float *XYZBuf;
     enum MlType {  TRAIN, TEST};
     MlType datatype;
     int svmLayer;//-1 means stop
