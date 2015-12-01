@@ -49,6 +49,7 @@
 #include "cameras/environment.h"
 #include "cameras/orthographic.h"
 #include "cameras/perspective.h"
+#include "cameras/realistic.h"
 #include "film/image.h"
 #include "filters/box.h"
 #include "filters/gaussian.h"
@@ -109,6 +110,8 @@
 #include "shapes/paraboloid.h"
 #include "shapes/sphere.h"
 #include "shapes/trianglemesh.h"
+#include "shapes/helixclass.h"
+#include "shapes/particles.h"
 #include "textures/bilerp.h"
 #include "textures/checkerboard.h"
 #include "textures/constant.h"
@@ -349,6 +352,9 @@ Reference<Shape> MakeShape(const string &name,
                                   paramSet);
     else if (name == "nurbs")
         s = CreateNURBSShape(object2world, world2object, reverseOrientation,
+                             paramSet);
+    else if (name == "helix")
+        s = CreateHelixShape(object2world, world2object, reverseOrientation,
                              paramSet);
     else
         Warning("Shape \"%s\" unknown.", name.c_str());
@@ -611,6 +617,8 @@ Camera *MakeCamera(const string &name,
         camera = CreateOrthographicCamera(paramSet, animatedCam2World, film);
     else if (name == "environment")
         camera = CreateEnvironmentCamera(paramSet, animatedCam2World, film);
+    else if (name == "realistic")
+        camera = CreateRealisticCamera(paramSet, animatedCam2World, film);
     else
         Warning("Camera \"%s\" unknown.", name.c_str());
     paramSet.ReportUnused();

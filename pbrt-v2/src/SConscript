@@ -24,7 +24,7 @@ core_src = [ 'core/api.cpp',           'core/camera.cpp',         'core/diffgeom
              'core/sh.cpp',            'core/shrots.cpp',         'core/shape.cpp',
              'core/spectrum.cpp',      'core/targa.c',
              'core/texture.cpp',       'core/timer.cpp', 
-             'core/transform.cpp',     'core/volume.cpp' ]
+             'core/transform.cpp' ]
 
 parser_flex = env.CXXFile('core/pbrtlex.ll')
 parser_bison = env.CXXFile('core/pbrtparse.yy')
@@ -72,7 +72,8 @@ shapes_src = [ 'shapes/cone.cpp',        'shapes/cylinder.cpp',
                'shapes/disk.cpp',        'shapes/heightfield.cpp',
                'shapes/hyperboloid.cpp', 'shapes/loopsubdiv.cpp',
                'shapes/nurbs.cpp',       'shapes/paraboloid.cpp',
-               'shapes/sphere.cpp',      'shapes/trianglemesh.cpp' ]
+               'shapes/sphere.cpp',      'shapes/trianglemesh.cpp',
+		            'shapes/helixclass.cpp'   'shapes/particles.cpp']
 textures_src = [ 'textures/bilerp.cpp',          'textures/checkerboard.cpp',
                  'textures/constant.cpp',        'textures/dots.cpp',
                  'textures/fbm.cpp',             'textures/imagemap.cpp', 

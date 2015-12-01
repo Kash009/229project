@@ -39,12 +39,13 @@
 // accelerators/bvh.h*
 #include "pbrt.h"
 #include "primitive.h"
+    #include "timer.h"
 struct BVHBuildNode;
 
 // BVHAccel Forward Declarations
 struct BVHPrimitiveInfo;
 struct LinearBVHNode;
-
+struct mdist;
 // BVHAccel Declarations
 class BVHAccel : public Aggregate {
 public:
@@ -61,11 +62,19 @@ private:
     BVHBuildNode *recursiveBuild(MemoryArena &buildArena,
         vector<BVHPrimitiveInfo> &buildData, uint32_t start, uint32_t end,
         uint32_t *totalNodes, vector<Reference<Primitive> > &orderedPrims);
-    uint32_t flattenBVHTree(BVHBuildNode *node, uint32_t *offset);
+	
+    vector<BVHBuildNode*> aacBuild(MemoryArena &buildArena,
+		vector<BVHPrimitiveInfo> &buildData, vector<Reference<Primitive> > &orderedPrims,
+		uint32_t start, uint32_t end, uint32_t bit,uint32_t *totalNodes);
+
+	
+    void combine(MemoryArena &buildArena, vector<BVHBuildNode*>&cluster, int nNodes, uint32_t *totalNodes);
+	uint32_t flattenBVHTree(BVHBuildNode *node, uint32_t *offset);
+    void findBestMatch(vector<BVHBuildNode*> &cluster, vector<mdist> &mins, int index);
 
     // BVHAccel Private Data
     uint32_t maxPrimsInNode;
-    enum SplitMethod { SPLIT_MIDDLE, SPLIT_EQUAL_COUNTS, SPLIT_SAH };
+    enum SplitMethod { SPLIT_MIDDLE, SPLIT_EQUAL_COUNTS, SPLIT_SAH, SPLIT_AAC };
     SplitMethod splitMethod;
     vector<Reference<Primitive> > primitives;
     LinearBVHNode *nodes;

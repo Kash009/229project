@@ -1,4 +1,6 @@
 
+/*AAC CODE starting from line 151*/
+
 /*
     pbrt source code Copyright(c) 1998-2012 Matt Pharr and Greg Humphreys.
 
@@ -29,25 +31,27 @@
 
  */
 
-
 // accelerators/bvh.cpp*
 #include "stdafx.h"
 #include "accelerators/bvh.h"
 #include "probes.h"
 #include "paramset.h"
+#include "timer.h"
+const int DELTA=4;
+const float EPSILON=0.2;
 
-// BVHAccel Local Declarations
 struct BVHPrimitiveInfo {
-    BVHPrimitiveInfo() { }
-    BVHPrimitiveInfo(int pn, const BBox &b)
-        : primitiveNumber(pn), bounds(b) {
-        centroid = .5f * b.pMin + .5f * b.pMax;
-    }
-    int primitiveNumber;
-    Point centroid;
-    BBox bounds;
+	BVHPrimitiveInfo() { }
+	BVHPrimitiveInfo(int pn, const BBox &b)
+		: primitiveNumber(pn), bounds(b) {
+		centroid = .5f * b.pMin + .5f * b.pMax;
+		morton = 0;
+	}
+	uint32_t morton;
+	int primitiveNumber;
+	Point centroid;
+	BBox bounds;
 };
-
 
 struct BVHBuildNode {
     // BVHBuildNode Public Methods
@@ -57,18 +61,20 @@ struct BVHBuildNode {
         nPrimitives = n;
         bounds = b;
     }
-    void InitInterior(uint32_t axis, BVHBuildNode *c0, BVHBuildNode *c1) {
+	
+	void InitInterior(uint32_t axis, BVHBuildNode *c0, BVHBuildNode *c1) {
         children[0] = c0;
         children[1] = c1;
         bounds = Union(c0->bounds, c1->bounds);
+		centroid = .5f * bounds.pMin + .5f * bounds.pMax;
         splitAxis = axis;
         nPrimitives = 0;
     }
     BBox bounds;
+	Point centroid;
     BVHBuildNode *children[2];
     uint32_t splitAxis, firstPrimOffset, nPrimitives;
 };
-
 
 struct CompareToMid {
     CompareToMid(int d, float m) { dim = d; mid = m; }
@@ -79,7 +85,6 @@ struct CompareToMid {
     }
 };
 
-
 struct ComparePoints {
     ComparePoints(int d) { dim = d; }
     int dim;
@@ -88,7 +93,6 @@ struct ComparePoints {
         return a.centroid[dim] < b.centroid[dim];
     }
 };
-
 
 struct CompareToBucket {
     CompareToBucket(int split, int num, int d, const BBox &b)
@@ -100,7 +104,6 @@ struct CompareToBucket {
     const BBox &centroidBounds;
 };
 
-
 bool CompareToBucket::operator()(const BVHPrimitiveInfo &p) const {
     int b = nBuckets * ((p.centroid[dim] - centroidBounds.pMin[dim]) /
             (centroidBounds.pMax[dim] - centroidBounds.pMin[dim]));
@@ -108,7 +111,6 @@ bool CompareToBucket::operator()(const BVHPrimitiveInfo &p) const {
     Assert(b >= 0 && b < nBuckets);
     return b <= splitBucket;
 }
-
 
 struct LinearBVHNode {
     BBox bounds;
@@ -121,7 +123,6 @@ struct LinearBVHNode {
     uint8_t axis;         // interior node: xyz
     uint8_t pad[2];       // ensure 32 byte total size
 };
-
 
 static inline bool IntersectP(const BBox &bounds, const Ray &ray,
         const Vector &invDir, const uint32_t dirIsNeg[3]) {
@@ -147,6 +148,273 @@ static inline bool IntersectP(const BBox &bounds, const Ray &ray,
     return (tmin < ray.maxt) && (tmax > ray.mint);
 }
 
+//morton code implemented from stack overflow
+void mortonInit(vector<BVHPrimitiveInfo> &data, BBox global){
+	float minx = global.pMin.x;
+	float miny = global.pMin.y;
+	float minz = global.pMin.z;
+	float x = 1024.0f / (global.pMax.x - minx);
+	float y = 1024.0f / (global.pMax.y - miny);
+	float z = 1024.0f / (global.pMax.z - minz);
+	int size = data.size();
+	for (int i = 0; i < size; i++){
+		Point p = data[i].centroid;
+		uint32_t ix = ((1 << 10) - 1)&(uint32_t)round(x*(p.x - minx));
+		uint32_t iy = ((1 << 10) - 1)&(uint32_t)round(y*(p.y - miny));
+		uint32_t iz = ((1 << 10) - 1)&(uint32_t)round(z*(p.z - minz));
+        
+        ix = (ix | (ix << 16)) & 0x030000FF;
+        ix = (ix | (ix <<  8)) & 0x0300F00F;
+        ix = (ix | (ix <<  4)) & 0x030C30C3;
+        ix = (ix | (ix <<  2)) & 0x09249249;
+        
+        iy = (iy | (iy << 16)) & 0x030000FF;
+        iy = (iy | (iy <<  8)) & 0x0300F00F;
+        iy = (iy | (iy <<  4)) & 0x030C30C3;
+        iy = (iy | (iy <<  2)) & 0x09249249;
+		
+        iz = (iz | (iz << 16)) & 0x030000FF;
+        iz = (iz | (iz <<  8)) & 0x0300F00F;
+        iz = (iz | (iz <<  4)) & 0x030C30C3;
+        iz = (iz | (iz <<  2)) & 0x09249249;
+		
+        data[i].morton = (ix << 2 | iy << 1 | iz);
+	}
+}
+
+void mortonSort(vector<BVHPrimitiveInfo> &data, int start, int end, int b){
+	if (end-start < 2)return;
+	int zeros = 0;
+	
+    //see if sort is necessary
+	for (int i = start; i < end; i++){
+		if (((data[i]).morton & (1 << b)) == 0) zeros++;
+	}
+	
+    //if sort is unnecessary continue to next bucket
+	if (zeros == 0 || zeros == end - start){
+		if (b>0)mortonSort(data, start, end, b - 1);
+		return;
+	}
+	
+    //sort by bit b
+	int zerobound = start; int onebound = end-1;
+	while (onebound != zerobound){
+		if ((data[zerobound]).morton & (1 << b)){
+			swap(data[zerobound], data[onebound]);
+			onebound--;
+		}
+		else{ zerobound++; }
+	}
+	mortonSort(data, start, start + zeros, b - 1);
+	mortonSort(data, start + zeros, end, b - 1);
+}
+
+inline int func(int i){ 
+    return (int)ceil(0.5*pow(DELTA, 0.5 + EPSILON)*pow(i, 0.5 - EPSILON)); 
+}
+
+vector<BVHBuildNode*> BVHAccel::aacBuild(MemoryArena &buildArena,
+    vector<BVHPrimitiveInfo> &buildData, vector<Reference<Primitive> > &orderedPrims,
+	uint32_t start, uint32_t end,
+	uint32_t bit, uint32_t *totalNodes){
+	vector<BVHBuildNode*> cluster;
+    if (end - start < DELTA){
+        cluster.reserve(end-start);	
+        //initialize C
+		(*totalNodes) += end - start;
+		for (int i = start; i < end; i++){
+			uint32_t primNum = buildData[i].primitiveNumber;
+			BVHBuildNode *node = buildArena.Alloc<BVHBuildNode>();
+			node->InitLeaf(orderedPrims.size(), 1, buildData[i].bounds);
+            cluster.push_back(node);
+			orderedPrims.push_back(primitives[primNum]);
+		}
+		combine(buildArena,cluster, func(DELTA),totalNodes);
+		return cluster;
+	}
+	int changepoint = 0;
+    if(((buildData[start].morton ^ buildData[end-1].morton) & (1 << bit))==0){
+        changepoint = (start + end)/2 +1;
+    }else{
+        for (int i = start; i < end; i++){
+            if ((buildData[i].morton & (1 << bit))!=0){
+               changepoint = i;
+                break;
+            }
+        }
+    }
+	cluster = 
+        aacBuild(buildArena, buildData, orderedPrims, start, changepoint, bit-1, totalNodes);
+	vector<BVHBuildNode*>rightCluster = 
+        aacBuild(buildArena, buildData, orderedPrims, changepoint, end, bit-1, totalNodes);
+    
+    cluster.insert(cluster.end(), rightCluster.begin(), rightCluster.end());
+    combine(buildArena, cluster, func(end-start),totalNodes);
+    return cluster;
+}
+
+struct mdist{
+    int index;
+    float distance;
+};
+
+//finds best match in all clusters after index
+void initMatch(vector<BVHBuildNode*> cluster, /*vector<vector<float> >&pairs,*/ vector<mdist>&min, int index){
+    mdist result={};
+    int size = cluster.size();
+    //vector<float> vec;
+    //vec.reserve(size-index-1);
+    int mini = -1;
+    float mind = std::numeric_limits<float>::max();
+    BBox box = cluster[index]->bounds;
+    for(int i = index +1; i <size;i++){
+        BBox cmp = Union(box,cluster[i]->bounds);
+        float dist = cmp.SurfaceArea();
+    //    vec.push_back(dist);
+        if(dist < mind){
+            mini = i;
+            mind = dist;
+        }
+    }
+    //pairs.push_back(vec);
+    result.index = mini;
+    result.distance = mind;
+    min.push_back(result);
+}
+
+void BVHAccel::findBestMatch(vector<BVHBuildNode*> &cluster, vector<mdist> &mins, int index){
+    BBox box = cluster[index]->bounds;
+    int mini = -1;
+    float mind = std::numeric_limits<float>::max();
+    for(int i = index+1; i < cluster.size();i++){
+        BBox b = Union(box, cluster[i]->bounds);
+        float d = b.SurfaceArea();
+        if(d <mind){mind = d; mini = i;}
+    }
+    mins[index].index= mini;
+    mins[index].distance= mind;
+}
+
+void BVHAccel::combine(MemoryArena &buildArena, vector<BVHBuildNode*> &cluster, int nNodes, uint32_t *totalNodes){
+    int size = cluster.size();
+	if(size <= 1 || size <= nNodes)return;
+    vector<mdist> min;
+    min.reserve(size-1);
+    //vector<vector<float> > pairs;
+    //pairs.reserve(size-1);
+
+    for(int i = 0; i <size-1; i++){
+        initMatch(cluster,/* pairs,*/ min, i);
+    }//n-1 min values
+    
+    //loop and cluster
+	while (size >nNodes){
+        int d= size-2;//check min of all n-1 pairs
+        for(int i = 0; i <size-2;i++){
+            if(min[i].distance < min[d].distance) d = i;
+        }
+		//merge
+        int left = d;
+        int right = min[d].index;
+        (*totalNodes)++;
+		BVHBuildNode *node = buildArena.Alloc<BVHBuildNode>();
+		node->InitInterior(0, cluster[left], cluster[right]);
+        cluster[left]=node;
+        cluster[right]=cluster.back();
+    //    moveEnd(cluster, pairs, min, right);
+    //   updateLeft(cluster, pairs, min, left);
+    //   update(cluster, pairs, min, left, right);
+        cluster.pop_back();
+        min.pop_back();
+        findBestMatch(cluster,min,left);
+        if(right <size-1)findBestMatch(cluster,min,right);
+        for(int i = 0; i <size-2;i++){
+            if(min[i].index ==left ||min[i].index ==right)
+                findBestMatch(cluster,min,i);
+            else if( min[i].index == size-1 ){
+                if(i < right) min[i].index = right;
+                findBestMatch(cluster,min,i);
+            }
+        }
+        size --;
+    }
+}
+
+//optimization using double array that didn't end up speeding it up by much
+/*
+void updateLeft(vector<BVHBuildNode*> &cluster, vector<vector<float> > &pairs, vector<mdist> &min, int left){
+    int size = cluster.size();//currently old size
+    //original matrix[a][b] flattened [a][b-a-1]
+    //update other nodes for combined node in left
+    BBox box = cluster[left]->bounds;
+    for(int i = 0; i < left;i++){
+        BBox b = Union(cluster[i]->bounds,box);
+        pairs[i][left-i-1]= b.SurfaceArea();
+    }
+    //update new left node
+    int mini = -1;
+    float mind = std::numeric_limits<float>::max();
+    for(int i = left+1; i < size-1;i++){
+        BBox b = Union(cluster[i]->bounds,box);
+        pairs[left][i-left-1]= b.SurfaceArea();
+        if(pairs[left][i-left-1] < mind){
+            mind = pairs[left][i-left-1];
+            mini = i;
+        }
+    }
+    if(left < size -1){
+        min[left].index = mini;
+        min[left].distance = mind; 
+    } 
+}
+void moveEnd(vector<BVHBuildNode*> &cluster, vector<vector<float> > &pairs, vector<mdist> &min, int right){
+    int size = cluster.size();//currently old size
+    //original matrix[a][b] flattened [a][b-a-1]
+    //update other nodes for moving of end node to right node
+    for(int i = 0; i < right;i++){
+        pairs[i][right-i-1]=pairs[i][(size-1)-i-1];
+        pairs[i].pop_back();
+    }
+    //update new right node
+    if(right < size-1)pairs[right].pop_back();
+    int mini = -1;
+    int mind = std::numeric_limits<float>::max();
+    for(int i = right+1; i < size-1;i++){
+        pairs[right][i-right-1]=pairs[i][(size-1)-i-1];
+        pairs[i].pop_back();
+        if(pairs[right][i-right-1] < mind){
+            mind = pairs[right][i-right-1];
+            mini = i;
+        }
+    }
+    if(right < size-2){
+        min[right].index = mini;
+        min[right].distance = mind; 
+    }
+    min.pop_back();
+}
+void update(vector<BVHBuildNode*> &cluster, vector<vector<float> > &pairs, vector<mdist> &min, int left, int right){
+    int size = cluster.size();//currently old size
+     //update any nodes with original left/right as mins
+    for(int i = 0; i < size -1; i++){
+        int prev = min[i].index;
+        if(prev ==right || prev == left){
+            int ind = -1;
+            float dst = std::numeric_limits<float>::max();
+            for(int j = i+1; j < size-1;j++){
+                if(pairs[i][j-i-1] < dst){
+                    dst = pairs[i][j-i-1];
+                    ind= j;
+                }
+             }
+            min[i].index = ind;
+            min[i].distance = dst; 
+            }
+        else if(prev == size-1) min[i].index = right;
+        }
+}
+*/
 
 
 // BVHAccel Method Definitions
@@ -158,6 +426,7 @@ BVHAccel::BVHAccel(const vector<Reference<Primitive> > &p,
     if (sm == "sah")         splitMethod = SPLIT_SAH;
     else if (sm == "middle") splitMethod = SPLIT_MIDDLE;
     else if (sm == "equal")  splitMethod = SPLIT_EQUAL_COUNTS;
+    else if (sm == "aac")  splitMethod = SPLIT_AAC;
     else {
         Warning("BVH split method \"%s\" unknown.  Using \"sah\".",
                 sm.c_str());
@@ -170,12 +439,13 @@ BVHAccel::BVHAccel(const vector<Reference<Primitive> > &p,
     }
     // Build BVH from _primitives_
     PBRT_BVH_STARTED_CONSTRUCTION(this, primitives.size());
-
     // Initialize _buildData_ array for primitives
     vector<BVHPrimitiveInfo> buildData;
     buildData.reserve(primitives.size());
+	BBox global = primitives[0]->WorldBound();
     for (uint32_t i = 0; i < primitives.size(); ++i) {
         BBox bbox = primitives[i]->WorldBound();
+		global = Union(global, bbox);
         buildData.push_back(BVHPrimitiveInfo(i, bbox));
     }
 
@@ -184,9 +454,21 @@ BVHAccel::BVHAccel(const vector<Reference<Primitive> > &p,
     uint32_t totalNodes = 0;
     vector<Reference<Primitive> > orderedPrims;
     orderedPrims.reserve(primitives.size());
-    BVHBuildNode *root = recursiveBuild(buildArena, buildData, 0,
-                                        primitives.size(), &totalNodes,
-                                        orderedPrims);
+	BVHBuildNode *root;
+	
+    if (splitMethod == SPLIT_AAC){
+        mortonInit(buildData,global);
+        mortonSort(buildData,0,primitives.size(),29);
+        vector<BVHBuildNode*>cluster = 
+            aacBuild(buildArena, buildData, orderedPrims, 0, primitives.size(), 29, &totalNodes);
+		combine(buildArena,cluster,1,&totalNodes);
+		root = cluster[0];
+    }
+	else{
+		root = recursiveBuild(buildArena, buildData, 0,
+			primitives.size(), &totalNodes,
+			orderedPrims);
+	}
     primitives.swap(orderedPrims);
         Info("BVH created with %d nodes for %d primitives (%.2f MB)", totalNodes,
              (int)primitives.size(), float(totalNodes * sizeof(LinearBVHNode))/(1024.f*1024.f));
@@ -200,6 +482,7 @@ BVHAccel::BVHAccel(const vector<Reference<Primitive> > &p,
     Assert(offset == totalNodes);
     PBRT_BVH_FINISHED_CONSTRUCTION(this);
 }
+
 
 
 BBox BVHAccel::WorldBound() const {
@@ -399,7 +682,6 @@ BVHAccel::~BVHAccel() {
     FreeAligned(nodes);
 }
 
-
 bool BVHAccel::Intersect(const Ray &ray, Intersection *isect) const {
     if (!nodes) return false;
     PBRT_BVH_INTERSECTION_STARTED(const_cast<BVHAccel *>(this), const_cast<Ray *>(&ray));
@@ -452,7 +734,6 @@ bool BVHAccel::Intersect(const Ray &ray, Intersection *isect) const {
     PBRT_BVH_INTERSECTION_FINISHED();
     return hit;
 }
-
 
 bool BVHAccel::IntersectP(const Ray &ray) const {
     if (!nodes) return false;

@@ -73,6 +73,6 @@ private:
 
 
 LoopSubdiv *CreateLoopSubdivShape(const Transform *o2w, const Transform *w2o,
-        bool reverseOrientation, const ParamSet &params);
+ bool reverseOrientation, const ParamSet &params);
 
 #endif // PBRT_SHAPES_LOOPSUBDIV_H

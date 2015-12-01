@@ -39,13 +39,33 @@
 // samplers/adaptive.h*
 #include "pbrt.h"
 #include "sampler.h"
+#include "../libsvm/svm.h"
+
+//This means we actually initialize to 4+4 samples
+#define ML_MIN_SAMPLES 8
+//This gives us max 1024 samples: 4*2^8=1024
+#define ML_MAX_LAYERS 8
+//used in training
+#define PIXEL_DIFF_THRESHOLD 0.01
+
+typedef struct{
+    float X,Y,Z;
+    float var_Y, mean_Y;
+    float delta_Y;//first half and second half
+    bool single_shape;
+    bool single_primitive;
+    bool single_light;
+    float var_ndepth;
+    float *hull;//specified as for qhull
+    int n_samples;
+}pixel_data;
 
 // AdaptiveSampler Declarations
 class AdaptiveSampler : public Sampler {
 public:
     // AdaptiveSampler Public Methods
-    AdaptiveSampler(int xstart, int xend, int ystart, int yend,
-        int minSamples, int maxSamples, const string &method,
+    AdaptiveSampler(int xstart, int xend, int ystart, int yend, int ylength, int id_offset,
+        int minSamples, int maxSamples, const string &type,
         float sopen, float sclose);
     Sampler *GetSubSampler(int num, int count);
     ~AdaptiveSampler();
@@ -60,18 +80,30 @@ private:
     // AdaptiveSampler Private Methods
     bool needsSupersampling(Sample *samples, const RayDifferential *rays,
         const Spectrum *Ls, const Intersection *isects, int count);
-
+    void combinePixelData();
+    //Called for every training scene
+    void writePixelToFile();
+    void writeToFile(string filename, float value);
+    //Called when triggered from script of last raining scene
+    inline int get_id(){return idOffset + yLength*(xPos - xPixelStart) + (yPos- yPixelStart);}
+private:
     // AdaptiveSampler Private Data
     int xPos, yPos;
-    int minSamples, maxSamples;
+    int id;
+    int yLength;
+    int minSamples, maxSamples, currSamples;
+    int idOffset;
     float *sampleBuf;
-    enum AdaptiveTest { ADAPTIVE_COMPARE_SHAPE_ID,
-                        ADAPTIVE_CONTRAST_THRESHOLD };
-    AdaptiveTest method;
-    bool supersamplePixel;
+    enum MlType {  TRAIN, TEST};
+    MlType datatype;
+    int svmLayer;//-1 means stop
+    pixel_data currPixel;
+    pixel_data buffPixel;
+
 };
 
-
+void LoadModel();
+int GetAndUpdateIDOffset();
 AdaptiveSampler *CreateAdaptiveSampler(const ParamSet &params, const Film *film,
     const Camera *camera);
 

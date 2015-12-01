@@ -39,46 +39,45 @@
 #include "intersection.h"
 #include "camera.h"
 #include "montecarlo.h"
+#include <iostream>
 
+//Call method
+//while(getmoresamples){if(reportresults)writepixeltofile}
 // AdaptiveSampler Method Definitions
 AdaptiveSampler::AdaptiveSampler(int xstart, int xend,
-                     int ystart, int yend, int mins, int maxs, const string &m,
+                     int ystart, int yend, int ylength, int id_offset, int mins, int maxs, const string &t,
                      float sopen, float sclose)
     : Sampler(xstart, xend, ystart, yend, RoundUpPow2(max(mins, maxs)),
               sopen, sclose) {
+    
     xPos = xPixelStart;
     yPos = yPixelStart;
-    supersamplePixel = false;
-    if (mins > maxs) std::swap(mins, maxs);
+    yLength = ylength;
+    idOffset = id_offset;
+    svmLayer = 0;
 
-    if (!IsPowerOf2(mins)) {
-        Warning("Minimum pixel samples being rounded up to power of 2");
-        minSamples = RoundUpPow2(mins);
-    }
-    else
-        minSamples = mins;
-    if (!IsPowerOf2(maxs)) {
-        Warning("Maximum pixel samples being rounded up to power of 2");
-        maxSamples = RoundUpPow2(maxs);
-    }
-    else
-        maxSamples = maxs;
+    if(t == "train") datatype = TRAIN;
+    else datatype = TEST;
 
-    if (minSamples < 2) {
-        Warning("Adaptive sampler needs at least two initial pixel samples.  Using two.");
-        minSamples = 2;
-    }
-    if (minSamples == maxSamples) {
-        maxSamples *= 2;
-        Warning("Adaptive sampler must have more maximum samples than minimum.  Using %d - %d",
-                minSamples, maxSamples);
-    }
-    if (m == "contrast") method = ADAPTIVE_CONTRAST_THRESHOLD;
-    else if (m == "shapeid") method = ADAPTIVE_COMPARE_SHAPE_ID;
-    else {
-        Warning("Adaptive sampling metric \"%s\" unknown.  Using \"contrast\".",
-                m.c_str());
-        method = ADAPTIVE_CONTRAST_THRESHOLD;
+    minSamples = ML_MIN_SAMPLES;
+
+    if(datatype == TEST){
+        if (maxs < ML_MIN_SAMPLES){
+            Warning("Maximum samples has to be greater or equal to %d; setting to %d", 
+                ML_MIN_SAMPLES, ML_MIN_SAMPLES);
+            maxSamples = ML_MIN_SAMPLES;
+
+        }else if (!IsPowerOf2(maxs)) {
+            Warning("Maximum pixel samples being rounded down to power of 2");
+            maxSamples = RoundUpPow2(maxs)/2;
+            //remember to truncate to ml max layers?
+        }else
+            maxSamples = maxs;
+    }else{
+        //for training
+        minSamples = ML_MIN_SAMPLES;
+        //doublecheck redundancy
+        maxSamples = ML_MIN_SAMPLES * powf(2,ML_MAX_LAYERS);
     }
     sampleBuf = NULL;
 }
@@ -93,98 +92,115 @@ Sampler *AdaptiveSampler::GetSubSampler(int num, int count) {
     int x0, x1, y0, y1;
     ComputeSubWindow(num, count, &x0, &x1, &y0, &y1);
     if (x0 == x1 || y0 == y1) return NULL;
-    return new AdaptiveSampler(x0, x1, y0, y1, minSamples, maxSamples,
-        method == ADAPTIVE_CONTRAST_THRESHOLD ? "contrast" : "shapeid",
-        shutterOpen, shutterClose);
+    return new AdaptiveSampler(x0, x1, y0, y1, yLength, idOffset, minSamples, maxSamples, datatype == TRAIN ? "train" : "test", shutterOpen, shutterClose);
 }
 
-
+//REWRITE
 int AdaptiveSampler::GetMoreSamples(Sample *samples, RNG &rng) {
     if (!sampleBuf)
-        sampleBuf = new float[LDPixelSampleFloatsNeeded(samples,
-                                                        maxSamples)];
-    if (supersamplePixel) {
-        LDPixelSample(xPos, yPos, shutterOpen, shutterClose, maxSamples,
-                      samples, sampleBuf, rng);
+        sampleBuf = new float[LDPixelSampleFloatsNeeded(samples,maxSamples)];
+    if (svmLayer > 0) {
+    //svmlayer = layer it has to passthrough AFTER this sample increase. i.e. layer 1 means it already has 2 rounds of samples.
+        LDPixelSample(xPos, yPos, shutterOpen, shutterClose, currSamples,
+                      &(samples[currSamples]), sampleBuf, rng);
+        currSamples *= 2;
         return maxSamples;
     }
-    else {
-        if (yPos == yPixelEnd) return 0;
-        LDPixelSample(xPos, yPos, shutterOpen, shutterClose, minSamples,
-                      samples, sampleBuf, rng);
-        return minSamples;
+    //end of image
+    else if(svmLayer < 0){
+        if(yPos == yPixelEnd) return 0;
+        svmLayer = 0;//set to new pixel
     }
+    //new pixel
+    LDPixelSample(xPos, yPos, shutterOpen, shutterClose, currSamples, samples, sampleBuf, rng);
+    //note that we're not incrementing currsamples for the base case
+    return currSamples;
 }
 
 
 bool AdaptiveSampler::ReportResults(Sample *samples,
         const RayDifferential *rays, const Spectrum *Ls,
         const Intersection *isects, int count) {
-    if (supersamplePixel) {
-        supersamplePixel = false;
-        // Advance to next pixel for sampling for _AdaptiveSampler_
-        if (++xPos == xPixelEnd) {
-            xPos = xPixelStart;
-            ++yPos;
-        }
-        return true;
-    }
-    else if (needsSupersampling(samples, rays, Ls, isects, count)) {
-        PBRT_SUPERSAMPLE_PIXEL_YES(xPos, yPos);
-        supersamplePixel = true;
+  
+    if(needsSupersampling(samples, rays, Ls, isects, count)){
+        svmLayer++;
+        //increase number of samples
         return false;
     }
-
-    else {
-        PBRT_SUPERSAMPLE_PIXEL_NO(xPos, yPos);
-        // Advance to next pixel for sampling for _AdaptiveSampler_
-        if (++xPos == xPixelEnd) {
-            xPos = xPixelStart;
-            ++yPos;
-        }
-        return true;
+    if (++xPos == xPixelEnd) {
+        xPos = xPixelStart;
+        ++yPos;
     }
+    svmLayer = -1;
+    currSamples = minSamples/2;
+    return true;
 }
 
 
 bool AdaptiveSampler::needsSupersampling(Sample *samples,
         const RayDifferential *rays, const Spectrum *Ls,
         const Intersection *isects, int count) {
-    switch (method) {
-    case ADAPTIVE_COMPARE_SHAPE_ID:
-        // See if any shape ids differ within samples
-        for (int i = 0; i < count-1; ++i)
-            if (isects[i].shapeId != isects[i+1].shapeId ||
-                isects[i].primitiveId != isects[i+1].primitiveId)
-                return true;
-        return false;
-    case ADAPTIVE_CONTRAST_THRESHOLD:
-        // Compare contrast of sample differences to threshold
-        float Lavg = 0.f;
-        for (int i = 0; i < count; ++i)
-            Lavg += Ls[i].y();
-        Lavg /= count;
-        const float maxContrast = 0.5f;
-        for (int i = 0; i < count; ++i)
-            if (fabsf(Ls[i].y() - Lavg) / Lavg > maxContrast)
-                return true;
-        return false;
+    
+    int rangemin;
+    int rangemax;
+    int rangesize;
+    if(svmLayer == 0){
+        id = get_id();
+        rangemin = 0;
+        rangemax = currSamples;
+    }else{
+        rangemin = currSamples/2;
+        rangemax = currSamples;
     }
+    rangesize = rangemax - rangemin;
+    //parse things
+    //init buff pixel
+    buffPixel.single_shape = true;
+    buffPixel.single_primitive = true;
+    float mean = 0;
+    //calculate/analyze things
+    for (int i = rangemin; i < rangemax -1; ++i){
+        if (isects[i].shapeId != isects[i+1].shapeId)buffPixel.single_shape = false;
+        mean += Ls[i].y();
+    }
+    mean /= rangesize;
+    combinePixelData();
+    if(datatype == TRAIN){
+        writePixelToFile();
+        if(svmLayer < ML_MAX_LAYERS)return true;
+    }
+    //currently test doesn't do anything besides minimum samples
+    if(svmLayer == 0)return true;
     return false;
 }
 
+void AdaptiveSampler::combinePixelData(){
+    if(svmLayer == 0){
+        //init currPixel with buffPixel
+        currPixel = buffPixel;
+    }else{
+        currPixel.single_shape = (currPixel.single_shape && buffPixel.single_shape);
+        currPixel.mean_Y = (currPixel.mean_Y + buffPixel.mean_Y)/2;
+    }
+}
+
+void AdaptiveSampler::writePixelToFile(){}
+
+void AdaptiveSampler::writeToFile(string filename, float value){}
+
+int GetAndUpdateIDOffset(){return 0;}
 
 AdaptiveSampler *CreateAdaptiveSampler(const ParamSet &params, const Film *film,
         const Camera *camera) {
     // Initialize common sampler parameters
     int xstart, xend, ystart, yend;
     film->GetSampleExtent(&xstart, &xend, &ystart, &yend);
-    int minsamp = params.FindOneInt("minsamples", 4);
-    int maxsamp = params.FindOneInt("maxsamples", 32);
+    int minsamp = params.FindOneInt("minsamples", ML_MIN_SAMPLES);
+    int maxsamp = params.FindOneInt("maxsamples", 64);
     if (PbrtOptions.quickRender) { minsamp = 2; maxsamp = 4; }
-    string method = params.FindOneString("method", "contrast");
-    return new AdaptiveSampler(xstart, xend, ystart, yend, minsamp, maxsamp, method,
+    string type = params.FindOneString("datatype", "train");
+    int ylength = ystart - yend;
+    int id_offset = GetAndUpdateIDOffset();
+    return new AdaptiveSampler(xstart, xend, ystart, yend, ylength, id_offset, minsamp, maxsamp, type,
          camera->shutterOpen, camera->shutterClose);
 }
-
-
