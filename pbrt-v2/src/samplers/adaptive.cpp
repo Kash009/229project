@@ -41,6 +41,7 @@
 #include "montecarlo.h"
 #include <iostream>
 #include <fstream>
+#include <string>
 
 //Call method
 //while(getmoresamples){if(reportresults)writepixeltofile}

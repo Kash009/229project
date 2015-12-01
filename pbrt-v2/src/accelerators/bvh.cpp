@@ -37,6 +37,7 @@
 #include "probes.h"
 #include "paramset.h"
 #include "timer.h"
+#include <limits>
 const int DELTA=4;
 const float EPSILON=0.2;
 
