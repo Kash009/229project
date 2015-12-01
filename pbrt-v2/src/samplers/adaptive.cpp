@@ -55,13 +55,13 @@ AdaptiveSampler::AdaptiveSampler(int xstart, int xend,
     yPos = yPixelStart;
     yLength = ylength;
     idOffset = id_offset;
-    svmLayer = 0;
 
     if(t == "train") datatype = TRAIN;
     else datatype = TEST;
     //check for redundancy when more awake
     minSamples = ML_MIN_SAMPLES;
     currSamples = minSamples/2;
+    svmLayer = 0;
 
     if(datatype == TEST){
         if (maxs < ML_MIN_SAMPLES){
@@ -132,7 +132,6 @@ bool AdaptiveSampler::ReportResults(Sample *samples,
         xPos = xPixelStart;
         ++yPos;
     }
-    id = get_id();
     svmLayer = -1;
     currSamples = minSamples/2;
     return true;
@@ -147,6 +146,7 @@ bool AdaptiveSampler::needsSupersampling(Sample *samples,
     int rangemax;
     int rangesize;
     if(svmLayer == 0){
+        id = get_id();
         rangemin = 0;
         rangemax = currSamples;
     }else{
@@ -197,7 +197,24 @@ void AdaptiveSampler::writeToFile(string filename, float value){
     file.close();
 }
 
-int GetAndUpdateIDOffset(){return 0;}
+int GetAndUpdateIDOffset(int newpoints){
+    std::ifstream read(DATA_PATH + "datacount");
+    int datacount = 0;
+    if(read.is_open()){
+        read >> datacount;
+    }else Warning("No pre-existing count file, setting to zero.");
+    read.close();
+
+
+    std::ofstream write(DATA_PATH + "datacount");
+    if(write.is_open()){
+        int update = datacount + newpoints;
+        if(update < datacount)Warning("Might have overflow in data count");
+        write << update;
+    }else Warning("Could not write to count file");
+    write.close();
+    return datacount;
+}
 
 AdaptiveSampler *CreateAdaptiveSampler(const ParamSet &params, const Film *film,
         const Camera *camera) {
@@ -208,8 +225,9 @@ AdaptiveSampler *CreateAdaptiveSampler(const ParamSet &params, const Film *film,
     int maxsamp = params.FindOneInt("maxsamples", 64);
     if (PbrtOptions.quickRender) { minsamp = 2; maxsamp = 4; }
     string type = params.FindOneString("datatype", "train");
-    int ylength = ystart - yend;
-    int id_offset = GetAndUpdateIDOffset();
+    int ylength = yend - ystart;
+    //need to deal with xstart, ystart !=0
+    int id_offset = GetAndUpdateIDOffset(xend*yend);
     return new AdaptiveSampler(xstart, xend, ystart, yend, ylength, id_offset, minsamp, maxsamp, type,
          camera->shutterOpen, camera->shutterClose);
 }

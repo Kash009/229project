@@ -104,7 +104,7 @@ private:
 };
 
 void LoadModel();
-int GetAndUpdateIDOffset();
+int GetAndUpdateIDOffset(int newdata);
 AdaptiveSampler *CreateAdaptiveSampler(const ParamSet &params, const Film *film,
     const Camera *camera);
 
