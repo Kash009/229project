@@ -4,12 +4,12 @@ ConcatTransform [ 0.828849 -0.295370 -0.475149 0.000000 -0.559473 -0.437585 -0.7
 Translate -4.860000 -7.200000 -5.400000
 
 Camera "perspective" "float fov" [45.000000 ] "float shutteropen" [0.000000 ] "float shutterclose" [0.000000 ] "float screenwindow" [-1.000000 1.000000 -1.000000 1.000000 ] "float frameaspectratio" [1.000000 ] 
-Film "image" "integer xresolution" [200] "integer yresolution" [200] "string filename" ["results/prt-teapot.exr"]
+Film "image" "integer xresolution" [100] "integer yresolution" [100] "string filename" ["results/prt-teapot.exr"]
 
 
 Sampler "adaptive" "string datatype" ["train"] "integer maxsamples" [2]
-PixelFilter "box"
-Accelerator "kdtree"
+#PixelFilter "box"
+Accelerator "bvh" "string splitmethod" "aac"
 
 WorldBegin
 Material "matte" "color Kd" [ 0 0 0]
