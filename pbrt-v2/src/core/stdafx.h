@@ -12,5 +12,6 @@
 #include "sampler.h"
 #include "texture.h"
 #include "integrator.h"
+#include "svm.h"
 
 #endif // _MSC_VER

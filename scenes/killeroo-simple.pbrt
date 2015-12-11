@@ -1,5 +1,5 @@
-Film "image"  "integer xresolution" [100] "integer yresolution" [100] "string filename" "results/killeroo-simple.exr"
-Sampler "adaptive" "string datatype" ["train"] "integer maxsamples" [2]
+Film "image" "string filename" ["../images/killeroo-150.exr"] "integer xresolution" [150] "integer yresolution" [150]
+Sampler "adaptive" "string datatype" ["train"]
 
 
 LookAt 400 20 30   0 63 -110   0 0 1
@@ -16,14 +16,21 @@ SurfaceIntegrator "directlighting"
 Accelerator "bvh" "string splitmethod" "aac"
 WorldBegin
 
-AttributeBegin
-Material "matte" "color Kd" [0 0 0]
-Translate 150 0  20
-Translate 0 120 0
-AreaLightSource "area"  "color L" [2000 2000 2000] "integer nsamples" [8]
-Shape "sphere" "float radius" [3]
-AttributeEnd
+#AttributeBegin
+#Material "matte" "color Kd" [0 0 0]
+#Translate 150 0  20
+#Translate 0 120 0
+#AreaLightSource "area"  "color L" [2000 2000 2000] "integer nsamples" [8]
+#Shape "sphere" "float radius" [3]
+#AttributeEnd
 
+AttributeBegin
+    AreaLightSource "area" "integer nsamples" [4] "color L" [2000 2000 2000]
+    Material "matte"  "color Kd"  [0.000000 0.000000 0.000000]
+    Translate 300 -450 300
+    Rotate -120.000000 1.000000 0.000000 0.000000
+    Shape "disk" "float height" 0.000000 "float radius" 20 
+AttributeEnd
 
 AttributeBegin
   Material "matte" "color Kd" [.5 .5 .8]

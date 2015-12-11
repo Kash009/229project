@@ -22,7 +22,7 @@
     HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
     SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
     LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    nodes, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
     THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -39,20 +39,20 @@
 // samplers/adaptive.h*
 #include "pbrt.h"
 #include "sampler.h"
-#include "../libsvm/svm.h"
+#include "svm.h"
 
 //This means we actually initialize to 4+4 samples
 #define ML_MIN_SAMPLES 8
-//This gives us max 1024 samples: 8*2^7=1024
-#define ML_MAX_LAYERS 2
+//This gives us max 1024 samples: 8*2^7=512
+#define ML_MAX_LAYERS 6
 //scale values back
-#define XYZ_SCALING 1
+#define XYZ_SCALING 100
 const std::string DATA_PATH = "../data/";
-enum Feature{ DELTA_X, DELTA_Y, DELTA_Z, VAR_Y, /*DEPTH,*/ SINGLESHAPE};
+
+enum Feature{ DELTA_X, DELTA_Y, DELTA_Z, M_X, M_Y, M_Z, VAR_Y,/*DEPTH,*/ SINGLESHAPE,END};
 
 typedef struct{
-    float XYZ[3];//pixel value in ciexyz space
-    float data[5];
+    svm_node nodes[9];
 }pixel_data;
 
 // AdaptiveSampler Declarations
@@ -61,7 +61,7 @@ public:
     // AdaptiveSampler Public Methods
     AdaptiveSampler(int xstart, int xend, int ystart, int yend, int ylength, int id_offset,
         int minSamples, int maxSamples, const string &type,
-        float sopen, float sclose);
+        float sopen, float sclose, svm_model** models,std::string modelpath);
     Sampler *GetSubSampler(int num, int count);
     ~AdaptiveSampler();
     int RoundSize(int size) const {
@@ -73,6 +73,7 @@ public:
         const Spectrum *Ls, const Intersection *isects, int count);
 private:
     // AdaptiveSampler Private Methods
+    void LoadModels(std::string modelpath);
     bool needsSupersampling(Sample *samples, const RayDifferential *rays,
         const Spectrum *Ls, const Intersection *isects, int count);
     void combinePixelData();
@@ -80,10 +81,11 @@ private:
     void writePixelToFile();
     void writeColor(string filename, float x, float y, float z);
     void writeToFile(string filename, float *value, int datasize);
+    void writeToFile(string filename, svm_node* value, int datasize);
     //Called when triggered from script of last raining scene
     inline int get_id(){return idOffset + yLength*xPos + yPos;}
 private:
-    // AdaptiveSampler Private Data
+    // AdaptiveSampler Private nodes
     int xPos, yPos;
     int id;
     int yLength;
@@ -91,16 +93,14 @@ private:
     int idOffset;
     float *sampleBuf;
     float *XYZBuf;
-    float *RGBBuf;
     enum MlType {  TRAIN, TEST};
     MlType datatype;
     int svmLayer;//-1 means stop
     pixel_data currPixel;
     pixel_data buffPixel;
-    svm_model **models;
+    svm_model** svmModels;
 };
 
-void LoadModels();
 int GetAndUpdateIDOffset(int newdata);
 AdaptiveSampler *CreateAdaptiveSampler(const ParamSet &params, const Film *film,
     const Camera *camera);

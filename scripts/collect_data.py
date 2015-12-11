@@ -1,4 +1,5 @@
 from tempfile import mkstemp
+from tempfile import mkstemp
 from shutil import move
 from os import remove, close
 from subprocess import call, Popen, PIPE
@@ -30,13 +31,11 @@ def modifysample(path, value1, value2):
 #runs through all sample combinations
 def runfile(path,output,resolution):
   eye = 1
-  f = open(output,'w')
   modifysample(path,output,resolution)
   call(['../pbrt-v2/src/bin/pbrt',path])
   #p = Popen(['exrdiff', stdout=PIPE, stderr=PIPE)
   #stdout, stderr = p.communicate()
   #print >>f, stdout
-  f.close()
 
 
 #main script

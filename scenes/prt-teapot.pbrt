@@ -1,7 +1,7 @@
-Film "image" "string filename" ["../images/teapot-20.exr"] "integer xresolution" [20] "integer yresolution" [20]
+Film "image" "string filename" ["../images/teapot-200.exr"] "integer xresolution" [200] "integer yresolution" [200]
 Sampler "adaptive" "string datatype" ["train"]
 
-SurfaceIntegrator "diffuseprt" "integer lmax" [10] "integer nsamples" [512]
+SurfaceIntegrator "diffuseprt" "integer lmax" [10] "integer nsamples" [256]
 
 ConcatTransform [ 0.828849 -0.295370 -0.475149 0.000000 -0.559473 -0.437585 -0.703924 0.000000 -0.000000 0.849280 -0.527943 0.000000 0.000000 0.000000 0.000000 1.000000 ]
 Translate -4.860000 -7.200000 -5.400000
@@ -17,7 +17,7 @@ Material "matte" "color Kd" [ 0 0 0]
 AttributeBegin
 LightSource "infinite" "string mapname" ["textures/grace_latlong.exr"]
 "color L" [10 10 10]
-	"integer nsamples" [128]
+	"integer nsamples" [32]
 AttributeEnd
 
 #Material "plastic" "color Kd" [.05 .05 .05] "color Ks" [.9 .9 .9] "float roughness" [.03]

@@ -1,5 +1,6 @@
-Film "image" "string filename" ["../images/occluder-5.exr"] "integer xresolution" [5] "integer yresolution" [5]
+Film "image" "string filename" ["../images/occluder-200.exr"] "integer xresolution" [200] "integer yresolution" [200]
 Sampler "adaptive" "string datatype" ["train"]
+Accelerator "bvh" "string splitmethod" "aac"
 
 LookAt 4 4 10   0 2 0  0 1 0
 Camera "perspective" "float fov" [30]

@@ -1,0 +1,90 @@
+DN51sdal:scripts winnielin$ python train_svmmodel.py 1 5
+
+optimization finished, #iter = 2441
+nu = 0.207366
+obj = nan, rho = -0.988439
+nSV = 2607, nBSV = 1242
+Total nSV = 2607
+Accuracy = 90.8101% (5504/6061) (classification)
+
+optimization finished, #iter = 2371
+nu = 0.203015
+obj = nan, rho = -0.983648
+nSV = 2496, nBSV = 1214
+Total nSV = 2496
+Accuracy = 91.1071% (5522/6061) (classification)
+
+optimization finished, #iter = 2366
+nu = 0.199835
+obj = nan, rho = -0.978896
+nSV = 2380, nBSV = 1192
+Total nSV = 2380
+Accuracy = 91.2721% (5532/6061) (classification)
+
+optimization finished, #iter = 2275
+nu = 0.195963
+obj = nan, rho = -0.981670
+nSV = 2314, nBSV = 1170
+Total nSV = 2314
+Accuracy = 91.5031% (5546/6061) (classification)
+
+optimization finished, #iter = 2315
+nu = 0.197029
+obj = nan, rho = -0.982111
+nSV = 2274, nBSV = 1169
+Total nSV = 2274
+Accuracy = 91.4206% (5541/6061) (classification)
+
+
+DN51sdal:scripts winnielin$ python train_svmmodel.py 2 5
+
+optimization finished, #iter = 1523
+nu = 0.214324
+obj = -601.388670, rho = -0.979860
+nSV = 1436, nBSV = 634
+Total nSV = 1436
+Accuracy = 90.3992% (2740/3031) (classification)
+
+optimization finished, #iter = 1552
+nu = 0.209914
+obj = -587.829747, rho = -0.976433
+nSV = 1379, nBSV = 619
+Total nSV = 1379
+Accuracy = 90.6961% (2749/3031) (classification)
+
+optimization finished, #iter = 1456
+nu = 0.205722
+obj = -574.549507, rho = -0.972452
+nSV = 1323, nBSV = 608
+Total nSV = 1323
+Accuracy = 90.8941% (2755/3031) (classification)
+
+optimization finished, #iter = 1449
+nu = 0.202560
+obj = -564.860038, rho = -0.972969
+nSV = 1294, nBSV = 599
+Total nSV = 1294
+Accuracy = 91.0591% (2760/3031) (classification)
+
+optimization finished, #iter = 1470
+nu = 0.205355
+obj = -571.865085, rho = -0.972441
+nSV = 1268, nBSV = 604
+Total nSV = 1268
+Accuracy = 90.9601% (2757/3031) (classification)
+
+DN51sdal:scripts winnielin$ python test_svmmodel.py ../model/Full/SVMModel-1 ../data/Bunn
+y/SVMData-1 6
+Accuracy = 92.9185% (37540/40401) (classification)
+Accuracy = 92.9903% (37569/40401) (classification)
+Accuracy = 92.9606% (37557/40401) (classification)
+Accuracy = 92.8888% (37528/40401) (classification)
+Accuracy = 92.5546% (37393/40401) (classification)
+
+DN51sdal:scripts winnielin$ python test_svmmodel.py ../model/Full/SVMModel-1 ../data/Kill
+eroo/SVMData-1 6
+Accuracy = 98.8397% (12522/12669) (classification)
+Accuracy = 98.9818% (12540/12669) (classification)
+Accuracy = 98.9344% (12534/12669) (classification)
+Accuracy = 98.5237% (12480/12667) (classification)
+Accuracy = 97.4651% (12342/12663) (classification)

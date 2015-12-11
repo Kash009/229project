@@ -2501,12 +2501,14 @@ double svm_get_svr_probability(const svm_model *model)
 double svm_predict_values(const svm_model *model, const svm_node *x, double* dec_values)
 {
 	int i;
+	std::cout<<"v"<<endl;
 	if(model->param.svm_type == ONE_CLASS ||
 	   model->param.svm_type == EPSILON_SVR ||
 	   model->param.svm_type == NU_SVR)
 	{
 		double *sv_coef = model->sv_coef[0];
 		double sum = 0;
+		std::cout<<"k"<<endl;
 		for(i=0;i<model->l;i++)
 			sum += sv_coef[i] * Kernel::k_function(x,model->SV[i],model->param);
 		sum -= model->rho[0];
@@ -2578,12 +2580,14 @@ double svm_predict(const svm_model *model, const svm_node *x)
 {
 	int nr_class = model->nr_class;
 	double *dec_values;
+	std::cout<<"b"<<endl;
 	if(model->param.svm_type == ONE_CLASS ||
 	   model->param.svm_type == EPSILON_SVR ||
 	   model->param.svm_type == NU_SVR)
 		dec_values = Malloc(double, 1);
 	else 
 		dec_values = Malloc(double, nr_class*(nr_class-1)/2);
+	std::cout<<"p"<<endl;
 	double pred_result = svm_predict_values(model, x, dec_values);
 	free(dec_values);
 	return pred_result;
@@ -2872,9 +2876,12 @@ bool read_model_header(FILE *fp, svm_model* model)
 
 svm_model *svm_load_model(const char *model_file_name)
 {
+	
+	std::cout<<"l"<<endl;
 	FILE *fp = fopen(model_file_name,"rb");
 	if(fp==NULL) return NULL;
 
+	std::cout<<"c"<<endl;
 	char *old_locale = strdup(setlocale(LC_ALL, NULL));
 	setlocale(LC_ALL, "C");
 
